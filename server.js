@@ -14,22 +14,49 @@ app.use(express.json());
 app.use(express.static("public"));
 
 // Define the API routes becaue DRY
-const dbPath = path.join(__dirname, './db/db.json');
+const dbPath = path.join(__dirname, "./db/db.json");
 
-// Route to get all notes
-app.get('/api/notes', (req, res) => {
-    fs.readFile(dbPath, 'utf8', (err, data) => {
+// Route to get all notes based on line 28 from index.js
+app.get("/api/notes", (req, res) => {
+  fs.readFile(dbPath, "utf8", (err, data) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+    const notes = JSON.parse(data);
+    res.json(notes);
+  });
+});
+
+// Route to add a new note based on line 36 from index.js
+app.post("/api/notes", (req, res) => {
+  fs.readFile(dbPath, "utf8", (err, data) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+
+    const notes = JSON.parse(data);
+    const newNote = req.body;
+
+    // Generate a unique ID for the new note.
+    newNote.id = uuidv4();
+
+    notes.push(newNote);
+
+    fs.writeFile(dbPath, JSON.stringify(notes), (err) => {
       if (err) {
         console.error(err);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        return res.status(500).json({ error: "Internal Server Error" });
       }
-      const notes = JSON.parse(data);
-      res.json(notes);
+      res.json(newNote);
     });
   });
-  
-  // Route to add a new note
-  app.post('/api/notes', (req, res) => {
+});
+
+// Route to handle DELETE requests
+// Route to delete a note by ID
+app.delete('/api/notes/:id', (req, res) => {
     fs.readFile(dbPath, 'utf8', (err, data) => {
       if (err) {
         console.error(err);
@@ -37,22 +64,29 @@ app.get('/api/notes', (req, res) => {
       }
   
       const notes = JSON.parse(data);
-      const newNote = req.body;
+      const noteId = req.params.id;
   
-      // Generate a unique ID for the new note.
-      newNote.id = uuidv4();
+      // Find the index of the note with the given ID
+      const noteIndex = notes.findIndex((note) => note.id === noteId);
   
-      notes.push(newNote);
+      if (noteIndex === -1) {
+        return res.status(404).json({ error: 'Note not found' });
+      }
   
+      // Remove the note with the given ID from the array
+      notes.splice(noteIndex, 1);
+  
+      // Write the updated notes array back to the db.json file
       fs.writeFile(dbPath, JSON.stringify(notes), (err) => {
         if (err) {
           console.error(err);
           return res.status(500).json({ error: 'Internal Server Error' });
         }
-        res.json(newNote);
+        res.json({ message: 'Note deleted successfully' });
       });
     });
   });
+  
 
 // Route to serve the 'notes.html' page
 app.get("/notes", (req, res) => {
