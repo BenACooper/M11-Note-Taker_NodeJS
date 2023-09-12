@@ -1,11 +1,7 @@
-//TODO Refactor code to implement modular design
-//TODO Refactor code to implemenet fsUtils?
-
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
-const { readFromFile, writeToFile, readAndAppend } = require("./helpers/fsUtils") //Plagiarised these utiity functions from the MiniProject. xP 
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -22,35 +18,44 @@ const dbPath = path.join(__dirname, "./db/db.json");
 
 // Route to get all notes refactored with readFromFile
 app.get("/api/notes", (req, res) => {
-    readFromFile(dbPath)
-      .then(data => {
-        const notes = JSON.parse(data);
-        res.json(notes);
-      })
-      .catch(err => {
-        console.error(err);
-        res.status(500).json({ error: "Internal Server Error" });
-      });
+  fs.readFile(dbPath, "utf8", (err, data) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+    const notes = JSON.parse(data);
+    res.json(notes);
   });
+});
 
-// Route to add a new note refactored with redAndAppend 
+// Route to add a new note based on line 36 from index.js
 app.post("/api/notes", (req, res) => {
+  fs.readFile(dbPath, "utf8", (err, data) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+
+    const notes = JSON.parse(data);
     const newNote = req.body;
-  
+
     // Generate a unique ID for the new note.
     newNote.id = uuidv4();
-  
-    readAndAppend(newNote, dbPath)
-      .then(() => {
-        res.json(newNote);
-      })
-      .catch((err) => {
+
+    notes.push(newNote);
+
+    fs.writeFile(dbPath, JSON.stringify(notes), (err) => {
+      if (err) {
         console.error(err);
-        res.status(500).json({ error: "Internal Server Error" });
-      });
+        return res.status(500).json({ error: "Internal Server Error" });
+      }
+      res.json(newNote);
+    });
   });
-  
-// Route to handle DELETE requests by ID
+});
+
+// Route to handle DELETE requests
+// Route to delete a note by ID
 app.delete('/api/notes/:id', (req, res) => {
     const noteId = req.params.id;
   
