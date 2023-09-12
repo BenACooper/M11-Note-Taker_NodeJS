@@ -17,22 +17,23 @@ app.use(express.json());
 // Serve static files from the 'public' directory
 app.use(express.static("public"));
 
-// Define the API routes becaue DRY
+// Define the API routes because DRY
 const dbPath = path.join(__dirname, "./db/db.json");
 
-// Route to get all notes based on line 28 from index.js
+// Route to get all notes refactored with readFromFile
 app.get("/api/notes", (req, res) => {
-  fs.readFile(dbPath, "utf8", (err, data) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: "Internal Server Error" });
-    }
-    const notes = JSON.parse(data);
-    res.json(notes);
+    readFromFile(dbPath)
+      .then(data => {
+        const notes = JSON.parse(data);
+        res.json(notes);
+      })
+      .catch(err => {
+        console.error(err);
+        res.status(500).json({ error: "Internal Server Error" });
+      });
   });
-});
 
-// Route to add a new note
+// Route to add a new note refactored with redAndAppend 
 app.post("/api/notes", (req, res) => {
     const newNote = req.body;
   
